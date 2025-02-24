@@ -1,0 +1,170 @@
+//Replica
+const express = require('express');
+const mysql = require('mysql2');
+
+const app = express();
+const port = 80;
+
+app.use(express.json());
+
+//Primary
+const masterDB = mysql.createConnection({
+    host: '34.66.252.39',
+    user: 'root',
+    password: '203512',
+    database: 'cloudDB'
+});
+
+//Replica
+const replicaDB = mysql.createConnection({
+    host: '127.0.0.1',
+    user: 'root',
+    password: '203512replica',
+    database: 'cloudDB'
+});
+
+//test connection
+masterDB.connect(err => {
+    if (err) console.error('Master DB connection failed:', err);
+    else console.log('Connected to Master Database.');
+});
+
+replicaDB.connect(err => {
+    if (err) console.error('Replica DB connection failed:', err);
+    else console.log('Connected to Replica Database.');
+});
+
+//register
+app.post('/register', (req, res) => {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const query = 'INSERT INTO Users (username) VALUES (?)';
+    masterDB.query(query, [username], (err, result) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        res.json({ message: `User '${username}' registered successfully!` });
+    });
+});
+
+//list users
+app.get('/list', (req, res) => {
+    const query = 'SELECT username FROM Users';
+    replicaDB.query(query, (err, results) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+
+        const users = results.map(row => row.username);
+        res.json({ users });
+    });
+});
+
+//clear user
+app.post('/clear', (req, res) => {
+    const query = 'DELETE FROM Users';
+    masterDB.query(query, (err, result) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        res.json({ message: 'All users deleted successfully!' });
+    });
+});
+
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${port}`);
+});
+
+
+
+//Primary
+const express = require('express');
+const mysql = require('mysql2');
+
+const app = express();
+const port = 80;
+
+app.use(express.json());
+
+const db = mysql.createConnection({
+    host: '127.0.0.1',
+    user: 'root',
+    password: '203512',
+    database: 'cloudDB'
+});
+
+db.connect(err => {
+    if (err) {
+        console.error('Database connection failed:', err);
+        process.exit(1);
+    }
+    console.log('Connected to MySQL Database.');
+});
+
+//GET /greeting
+app.get('/greeting', (req, res) => {
+    res.send('Hello World!');
+});
+
+//POST /register
+app.post('/register', (req, res) => {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const query = 'INSERT INTO Users (username) VALUES (?)';
+    db.query(query, [username], (err, result) => {
+        if (err) {
+            console.error('Error inserting user:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        res.json({ message: `User '${username}' registered successfully!` });
+    });
+});
+
+//GET /list
+app.get('/list', (req, res) => {
+    const query = 'SELECT username FROM Users';
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error fetching users:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        const users = results.map(row => row.username);
+        res.json({ users });
+    });
+});
+
+//POST /clar
+app.post('/clear', (req, res) => {
+    const query = 'DELETE FROM Users';
+    db.query(query, (err, result) => {
+        if (err) {
+            console.error('Error clearing users:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        res.json({ message: 'All users deleted successfully!' });
+    });
+});
+
+// Start
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${port}`);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
